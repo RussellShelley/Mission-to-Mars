@@ -14,7 +14,8 @@ def scrape_all():
           "news_paragraph": news_paragraph,
           "featured_image": featured_image(browser),
           "facts": mars_facts(),
-          "last_modified": dt.datetime.now()
+          "last_modified": dt.datetime.now(),
+          "hemisphere_image_urls": hemisphere_image_urls(browser)
     }
     # Stop webdriver and return data
     browser.quit()
@@ -95,7 +96,49 @@ def mars_facts():
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
 
+def hemisphere_image_urls(browser):
+    
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
 
+    # Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+    
+    # Optional delay for loading the page
+    browser.is_element_present_by_css("div.item", wait_time=1)
+
+    html = browser.html
+    news_soup = soup(html, 'html.parser')
+
+    collapsible_results = news_soup.select_one('div.collapsible.results')
+
+    picture_items=collapsible_results.find_all("div", class_="item")
+
+    for item in picture_items:
+         
+        #create dict.
+        hemispheres = {}
+        #get title
+        title=item.find("h3").get_text()
+        #add to dict.
+        hemispheres["title"] = title
+        #get relative image url
+        page_url_relative=item.find("a").get('href')
+        #create full url to image page
+        page_url_full = f'https://astrogeology.usgs.gov{page_url_relative}'
+        #visit image page
+        browser.visit(page_url_full)
+        browser.is_element_present_by_css("ul li", wait_time=1)
+        html = browser.html
+        pic_soup = soup(html, 'html.parser')
+        #get image url for full .jpg
+        img_url=pic_soup.find("a", text ='Sample').get('href')
+        img_url
+        #add to dict.
+        hemispheres["img_url"] = img_url
+        hemisphere_image_urls.append(hemispheres)
+
+    return hemisphere_image_urls    
 
 
 if __name__ == "__main__":
